@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import top.flobby.security.auth.handler.JsonAuthenticationFailureHandler;
+import top.flobby.security.auth.handler.JsonAuthenticationSuccessHandler;
 
 /**
  * @author : Flobby
@@ -32,10 +34,16 @@ public class MyWebSecurityConfig {
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // 配置所有的Http请求必须认证
         http.authorizeHttpRequests()
-                .requestMatchers("/login.html").permitAll()
+                .requestMatchers("/**.html").permitAll()
                 .anyRequest().authenticated();
         // 开启表单登录
         http.formLogin()
+                // 登录成功处理器
+                .successHandler(new JsonAuthenticationSuccessHandler())
+                // 登录失败处理器
+                .failureHandler(new JsonAuthenticationFailureHandler())
+                // .defaultSuccessUrl("/success.html")     // 自定义登录成功页面
+                // .failureUrl("/failure.html")    // 自定义登录失败页面
                 .loginPage("/login.html")               // 自定义登录页面（注意要同步配置loginProcessingUrl）
                 .loginProcessingUrl("/custom/login")    // 自定义登录处理URL
                 .usernameParameter("name")              // 自定义用户名参数名称
