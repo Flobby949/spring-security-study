@@ -36,8 +36,10 @@ public class MyWebSecurityConfig {
                 .anyRequest().authenticated();
         // 开启表单登录
         http.formLogin()
-                .loginPage("/login.html") // 自定义登录页面（注意要同步配置loginProcessingUrl）
-                .loginProcessingUrl("/login"); // 自定义登录处理URL
+                .loginPage("/login.html")               // 自定义登录页面（注意要同步配置loginProcessingUrl）
+                .loginProcessingUrl("/custom/login")    // 自定义登录处理URL
+                .usernameParameter("name")              // 自定义用户名参数名称
+                .passwordParameter("pwd");              //自定义密码参数名称
         // 关闭 CSRF
         http.csrf().disable();
         return http.build();
