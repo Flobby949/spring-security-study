@@ -2,9 +2,11 @@ package top.flobby.security.auth.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * @author : Flobby
@@ -24,5 +26,20 @@ public class MyWebSecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        // 配置所有的Http请求必须认证
+        http.authorizeHttpRequests()
+                .requestMatchers("/login.html").permitAll()
+                .anyRequest().authenticated();
+        // 开启表单登录
+        http.formLogin()
+                .loginPage("/login.html") // 自定义登录页面（注意要同步配置loginProcessingUrl）
+                .loginProcessingUrl("/login"); // 自定义登录处理URL
+        // 关闭 CSRF
+        http.csrf().disable();
+        return http.build();
     }
 }
