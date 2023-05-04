@@ -7,8 +7,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import top.flobby.security.auth.handler.JsonAuthenticationFailureHandler;
 import top.flobby.security.auth.handler.JsonAuthenticationSuccessHandler;
+import top.flobby.security.auth.handler.JsonLogoutSuccessHandler;
+import top.flobby.security.auth.handler.MyLogoutHandler;
 
 /**
  * @author : Flobby
@@ -34,7 +38,7 @@ public class MyWebSecurityConfig {
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // 配置所有的Http请求必须认证
         http.authorizeHttpRequests()
-                .requestMatchers("/**.html").permitAll()
+                .requestMatchers("/**.html", "/aaa", "/bbb").permitAll()
                 .anyRequest().authenticated();
         // 开启表单登录
         http.formLogin()
@@ -48,6 +52,24 @@ public class MyWebSecurityConfig {
                 .loginProcessingUrl("/custom/login")    // 自定义登录处理URL
                 .usernameParameter("name")              // 自定义用户名参数名称
                 .passwordParameter("pwd");              //自定义密码参数名称
+        // 注销登录
+        http.logout()
+                .addLogoutHandler(new MyLogoutHandler())    // 自定义注销处理器
+                .logoutSuccessHandler(new JsonLogoutSuccessHandler()) //  自定义注销成功处理器
+                .clearAuthentication(true) // 清理Authentication ，默认true
+                // .deleteCookies("xxx", "yyy") // 删除某些指定 cookie
+                .invalidateHttpSession(true) // 设置当前登录用户Session（保存登录后的用户信息）无效，默认true
+                // 自定义注销请求URL（和 logoutUrl配置只会生效一个）
+                .logoutRequestMatcher(new OrRequestMatcher(
+                        new AntPathRequestMatcher("/aaa","GET"),
+                        new AntPathRequestMatcher("/bbb","GET")))
+                .logoutSuccessUrl("/success.html"); // 自定义注销成功跳转地址
+                // 自定义注销登录请求处理路径
+                // .logoutUrl("/custom/logout");
+                // 关闭注销登录
+                // .disable();
+        // 开启 Basic 认证
+        http.httpBasic();
         // 关闭 CSRF
         http.csrf().disable();
         return http.build();
