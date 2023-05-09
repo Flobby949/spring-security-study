@@ -17,3 +17,13 @@ spring:
       max-lifetime: 1800000         # 连接的生命时长（毫秒），超时而且没被使用则被释放（retired），默认： 30 分钟
       connection-test-query: SELECT 1
       pool-name: MakuHikariCP
+
+server:
+  servlet:
+    session:
+      timeout: 3600s
+      cookie:
+        # 仅支持http，浏览器脚本将无法访问
+        http-only: true
+        # 仅通过HTTPS连接发送
+        secure: true
