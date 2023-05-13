@@ -22,6 +22,7 @@
 
     <modules>
         <module>spring-security-auth-demo</module>
+        <module>spring-security-authorize-demo</module>
     </modules>
 
     <dependencies>
