@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static top.flobby.security.auth.sms.SmsLoginConfigurer.smsLogin;
+
 /**
  * @author : Flobby
  * @program : spring-security-study
@@ -142,9 +144,11 @@ public class MyWebSecurityConfig {
         http.authorizeHttpRequests()
                 .requestMatchers("/**.html", "/aaa", "/bbb").permitAll()
                 .requestMatchers("/generateCaptcha").permitAll()
+                .requestMatchers("/sms/send/Captcha").permitAll()
                 .anyRequest().authenticated();
         // 添加验证码校验过滤器
         http.addFilterBefore(new CaptchaVerifyFilter(new JsonAuthenticationFailureHandler(), stringRedisTemplate), UsernamePasswordAuthenticationFilter.class);
+
         // 开启表单登录
         http.formLogin()
                 // 登录成功处理器
@@ -154,7 +158,7 @@ public class MyWebSecurityConfig {
                 // .defaultSuccessUrl("/success.html")     // 自定义登录成功页面
                 // .failureUrl("/failure.html")    // 自定义登录失败页面
                 // .loginPage("/login.html")               // 自定义登录页面（注意要同步配置loginProcessingUrl）
-                .loginProcessingUrl("/custom/login")    // 自定义登录处理URL
+                // .loginProcessingUrl("/custom/login")    // 自定义登录处理URL
                 .usernameParameter("name")              // 自定义用户名参数名称
                 .passwordParameter("pwd");              // 自定义密码参数名称
         // 注销登录
@@ -201,6 +205,8 @@ public class MyWebSecurityConfig {
                 .rememberMeCookieName("my-cookie-name") // 配置自定义Cookie 名，默认 remember-me
                 .tokenValiditySeconds(60 * 60 * 24 * 7); // 记住我有效时间
                 */
+        // 开启短信认证
+        http.apply(smsLogin());
         // 开启 Basic 认证
         http.httpBasic();
         // 关闭 CSRF
