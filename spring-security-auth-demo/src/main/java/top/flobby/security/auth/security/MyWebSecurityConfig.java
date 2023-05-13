@@ -3,6 +3,7 @@ package top.flobby.security.auth.security;
 import cn.hutool.crypto.SmUtil;
 import cn.hutool.crypto.symmetric.SymmetricCrypto;
 import cn.hutool.json.JSONUtil;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,11 +11,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.*;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.RememberMeServices;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
@@ -23,9 +28,11 @@ import top.flobby.security.auth.handler.JsonAuthenticationSuccessHandler;
 import top.flobby.security.auth.handler.JsonLogoutSuccessHandler;
 import top.flobby.security.auth.handler.MyLogoutHandler;
 
+import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * @author : Flobby
@@ -38,6 +45,11 @@ import java.util.Map;
 // 开启 Spring Security，debug：是否开启Debug模式
 @EnableWebSecurity(debug = false)
 public class MyWebSecurityConfig {
+
+    @Resource
+    DataSource dataSource;
+    @Resource
+    UserDetailsService userDetailsService;
 
     /**
      * 密码器
@@ -105,6 +117,15 @@ public class MyWebSecurityConfig {
         return new DelegatingPasswordEncoder(encodingId, encoders);
     }
 
+    // 基于数据库存储，并且每次自动登录后修改Cookie
+    @Bean
+    public RememberMeServices rememberMeServices() {
+        JdbcTokenRepositoryImpl tokenRepository = new JdbcTokenRepositoryImpl(); // 数据库存储令牌
+        tokenRepository.setDataSource(dataSource);
+        tokenRepository.setCreateTableOnStartup(true); //启动时自动创建表结构
+        return new PersistentTokenBasedRememberMeServices(UUID.randomUUID().toString(), userDetailsService, tokenRepository);
+    }
+
     @Bean
     public HttpSessionEventPublisher httpSessionEventPublisher() {
         return new HttpSessionEventPublisher();
@@ -124,7 +145,7 @@ public class MyWebSecurityConfig {
                 .failureHandler(new JsonAuthenticationFailureHandler())
                 // .defaultSuccessUrl("/success.html")     // 自定义登录成功页面
                 // .failureUrl("/failure.html")    // 自定义登录失败页面
-                .loginPage("/login.html")               // 自定义登录页面（注意要同步配置loginProcessingUrl）
+                // .loginPage("/login.html")               // 自定义登录页面（注意要同步配置loginProcessingUrl）
                 .loginProcessingUrl("/custom/login")    // 自定义登录处理URL
                 .usernameParameter("name")              // 自定义用户名参数名称
                 .passwordParameter("pwd");              // 自定义密码参数名称
@@ -163,10 +184,22 @@ public class MyWebSecurityConfig {
         //         .sessionFixation( // 会话固定攻击保护策略
         //                 SessionManagementConfigurer.SessionFixationConfigurer::changeSessionId
         //         ));
+        // 开启记住我
+        /* http.rememberMe()
+                //.alwaysRemember(true) // 始终开启记住我，不校验参数
+                .rememberMeParameter("my-param")  // 修改参数名，默认remember-me
+                .useSecureCookie(false) // 是否只支持https
+                .rememberMeCookieDomain("127.0.0.1") // 可以访问该 cookie 的域名
+                .rememberMeCookieName("my-cookie-name") // 配置自定义Cookie 名，默认 remember-me
+                .tokenValiditySeconds(60 * 60 * 24 * 7); // 记住我有效时间
+                */
         // 开启 Basic 认证
         http.httpBasic();
         // 关闭 CSRF
         http.csrf().disable();
+        // 开启记住我
+        http.rememberMe()
+                .rememberMeServices(rememberMeServices()); // 自定义记住我服务类
         return http.build();
     }
 }
