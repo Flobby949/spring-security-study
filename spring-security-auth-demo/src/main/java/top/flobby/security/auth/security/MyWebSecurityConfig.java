@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -18,11 +19,13 @@ import org.springframework.security.crypto.password.*;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.RememberMeServices;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import top.flobby.security.auth.filter.CaptchaVerifyFilter;
 import top.flobby.security.auth.handler.JsonAuthenticationFailureHandler;
 import top.flobby.security.auth.handler.JsonAuthenticationSuccessHandler;
 import top.flobby.security.auth.handler.JsonLogoutSuccessHandler;
@@ -50,6 +53,8 @@ public class MyWebSecurityConfig {
     DataSource dataSource;
     @Resource
     UserDetailsService userDetailsService;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 密码器
@@ -136,7 +141,10 @@ public class MyWebSecurityConfig {
         // 配置所有的Http请求必须认证
         http.authorizeHttpRequests()
                 .requestMatchers("/**.html", "/aaa", "/bbb").permitAll()
+                .requestMatchers("/generateCaptcha").permitAll()
                 .anyRequest().authenticated();
+        // 添加验证码校验过滤器
+        http.addFilterBefore(new CaptchaVerifyFilter(new JsonAuthenticationFailureHandler(), stringRedisTemplate), UsernamePasswordAuthenticationFilter.class);
         // 开启表单登录
         http.formLogin()
                 // 登录成功处理器
